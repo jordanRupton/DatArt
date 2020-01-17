@@ -1,0 +1,82 @@
+---
+title: Lining up at the start of a large race
+author: Jordan Upton
+date: '2019-08-21'
+slug: lining-up-at-the-start-of-a-large-race
+categories:
+  - R
+tags:
+  - plot
+  - running
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+I ran in the [Austin 3M Half Marathon](http://3mhalfmarathon.com/) earlier this year.  With over 6000 runners, it was by far the largest race I've run that **didn't** use a wave-start.  That is, everyone started at the same time, and it was up to every individual to place themselves in a position at the start line that was appropriate for their pace.  There were some pacers holding signs to indicate their target times, but other than that there was nothing to guide runners on where to line up in the crowd.
+
+For smaller races like your local 5k, this is not usually a problem.  Even if there are a few kids (or jerks, or jerk kids) who start at the very front, the lead runners will drop them in the first quarter mile.  With 6000 people, if folks don't line up correctly it could lead to chaos & collisions with frustrated fast runners dodging slower runners who started too close to the front.
+
+Fortunately, the start went off very smoothly and analyzing the results can give a good indication why.  With a handful of exceptions, most runners finished the race in *roughly* the same order as they began.  The plot below shows the relationship between start order (determined by the difference between gun time and chip time) and finish order.
+
+```{r, echo = FALSE, fig.height = 6, fig.width = 8, message=FALSE, warning = FALSE}
+library(tidyverse)
+library(ggthemes)
+library(scales)
+library(grid)
+library(gridExtra)
+
+#grab a custom function for captioning plots
+source("../../static/functions/functions.R")
+
+#read in the race results, taken from http://www.mychiptime.com/searchevent.php?id=11569
+plot <- read_csv("../../static/data/2019 Austin 3M Half Marathon Results.csv", col_types = "dddccdc") %>% 
+  #get an approximate starting order based on the difference between chip time and gun time
+  mutate(Start_Order = rank(Gun - Chip, ties.method = "min"),
+         Finish_Order = rank(Chip, ties.method = "min")) %>% 
+  
+  #plot start order vs finish order
+  ggplot(aes(Finish_Order, Start_Order)) + 
+  geom_point(alpha = 0.2, color = "red") + 
+  
+  #highlight and label some areas on the plot based on start vs finish
+  annotate("polygon", x = c(0, 500, 6016, 6016, 5000, 0), y = c(0, 0, 5000, 6016, 6016, 500), 
+           fill = hue_pal()(5)[4], alpha = 0.3, size = 1)+
+  annotate("text", x = c(3000, 500, 5500), y = c(3000, 5500, 500),
+           label = c("Just Right", "I overslept!", "I'm clueless!"), color = "grey20",
+           angle = 20, fontface = "bold", size = c(8, 4, 4)) +
+  
+  #add arrows to assist with axis interpretation
+  annotate("segment", x = 0, xend = 500, y = -500, yend = -500, 
+           arrow = arrow(end = "first", length = unit(0.3, "cm")), color = "grey50", size = 1.2)+
+  annotate("text", x = 500, y = -500, label = "Finished first", color = "grey50", hjust = 0)+
+  annotate("segment", x = 5500, xend = 6000, y = -500, yend = -500, 
+           arrow = arrow(end = "last", length = unit(0.3, "cm")), color = "grey50", size = 1.2)+
+  annotate("text", x = 5500, y = -500, label = "Finished last", color = "grey50", hjust = 1)+
+  annotate("segment", x = -100, xend = -100, y = 0, yend = 500, 
+           arrow = arrow(end = "first", length = unit(0.3, "cm")), color = "grey50", size = 1.2)+
+  annotate("text", x = -100, y = 500, label = "Started first", color = "grey50", hjust = 0, angle = 90)+
+  annotate("segment", x = -100, xend = -100, y = 5500, yend = 6000, 
+           arrow = arrow(end = "last", length = unit(0.3, "cm")), color = "grey50", size = 1.2)+
+  annotate("text", x = -100, y = 5500, label = "Started last", color = "grey50", hjust = 1, angle = 90)+
+  
+  #make some general changes to the theme to make everything look nice
+  theme_fivethirtyeight() + 
+  theme(axis.title = element_text(face = "bold", size = 12),
+        axis.text = element_blank(),
+        legend.position = "right") + 
+  labs(title = "Where to start?",
+       subtitle = "In what order did runners start and finish the race?",
+       x = "Order at the Finish",
+       y = "Order at the Start")
+
+
+#add a custom caption
+caption_plot(plot, "DatArt.netlify.com",
+             "Source: Austin 3M Half Marathon 2019 Results", fontsize = 12) %>%
+grid.draw()
+```
+
+
+Now, while everyone who finishes a half marathon should be proud, please don't toe the line if it's going to take you 3+ hours.
